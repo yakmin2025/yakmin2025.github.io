@@ -23,12 +23,9 @@
       color: #333;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
-    h1 {
-      margin-top: 30px;
-      font-size: 1.6em;
-      color: #333;
-    }
+    h1 { margin-top: 30px; font-size: 1.6em; color: #333; }
     .guide {
       max-width: 480px;
       margin: 25px auto 35px;
@@ -60,10 +57,7 @@
       transition: transform 0.2s, box-shadow 0.2s;
       cursor: pointer;
     }
-    .food-btn:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
-    }
+    .food-btn:active { transform: scale(0.95); }
     .numbers {
       margin: 30px auto;
       display: flex;
@@ -79,23 +73,14 @@
       flex-wrap: nowrap;
       overflow-x: auto;
     }
-    .placeholder {
-      color: #aaa;
-      font-size: 1em;
-      white-space: nowrap;
-    }
+    .placeholder { color: #aaa; font-size: 1em; white-space: nowrap; }
     .ball {
       display: inline-block;
-      width: 46px;
-      height: 46px;
-      line-height: 46px;
+      width: 46px; height: 46px; line-height: 46px;
       border-radius: 50%;
-      color: white;
-      font-weight: bold;
-      font-size: 1.1em;
+      color: white; font-weight: bold; font-size: 1.1em;
       flex-shrink: 0;
-      opacity: 0;
-      transform: scale(0.5);
+      opacity: 0; transform: scale(0.5);
       animation: popIn 0.4s ease forwards;
     }
     @keyframes popIn {
@@ -104,31 +89,25 @@
       100% { transform: scale(1); opacity: 1; }
     }
     .action-btn, .sns button {
-      border: none;
-      border-radius: 25px;
-      padding: 10px 18px;
-      margin: 5px;
-      cursor: pointer;
-      font-size: 1em;
+      border: none; border-radius: 25px; padding: 10px 18px;
+      margin: 5px; cursor: pointer; font-size: 1em;
     }
     .action-btn { background: #ffdca8; }
     .action-btn:hover { background: #ffcb7d; }
     .kakao { background: #fee500; color: #000; font-weight: 600; }
     .link { background: #5a5a5a; color: #fff; }
     .history {
-      margin: 20px auto 40px;
-      max-width: 480px;
-      background: #fff;
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      text-align: left;
+      margin: 20px auto 40px; max-width: 480px;
+      background: #fff; padding: 15px; border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05); text-align: left;
     }
   </style>
+
   <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
 </head>
 <body>
   <h1>🍀 음식으로 추천받는 로또 1등 번호 🍀</h1>
+
   <div class="guide">
     🍽 <b>사용 방법</b><br><br>
     1️⃣ 좋아하는 음식을 누르면 오늘의 로또 번호를 추천합니다.<br>
@@ -136,17 +115,7 @@
     3️⃣ 카카오톡으로 친구에게 공유도 가능해요 😊
   </div>
 
-  <div class="food-container">
-    <button class="food-btn">🍣</button>
-    <button class="food-btn">🍕</button>
-    <button class="food-btn">🍗</button>
-    <button class="food-btn">🍔</button>
-    <button class="food-btn">🍙</button>
-    <button class="food-btn">🍜</button>
-    <button class="food-btn">🍲</button>
-    <button class="food-btn">🥓</button>
-    <button class="food-btn">🥩</button>
-  </div>
+  <div class="food-container" id="foodContainer"></div>
 
   <div id="numbers" class="numbers">
     <div class="placeholder">🎯 음식 선택 시 번호가 표시됩니다</div>
@@ -169,33 +138,56 @@
 <script>
 Kakao.init("0fa08a279fdde2a96db99f7d26446e9d");
 
-const foods=["초밥","피자","치킨","햄버거","김밥","라면","국밥","삼겹살","스테이크"];
+const foods = [
+  {emoji:"🍣", name:"초밥"},
+  {emoji:"🍕", name:"피자"},
+  {emoji:"🍗", name:"치킨"},
+  {emoji:"🍔", name:"햄버거"},
+  {emoji:"🍙", name:"김밥"},
+  {emoji:"🍜", name:"라면"},
+  {emoji:"🍲", name:"국밥"},
+  {emoji:"🥓", name:"삼겹살"},
+  {emoji:"🥩", name:"스테이크"}
+];
 const colors=["#f44336","#ff9800","#ffeb3b","#4caf50","#2196f3","#9c27b0"];
-let selectedFood=null;
+let db, selectedFood=null;
 
-// ✅ IndexedDB 설정
+// ✅ IndexedDB
 const DB_NAME="LottoDB";
 const STORE_NAME="History";
-let db;
-const openReq=indexedDB.open(DB_NAME,1);
-openReq.onupgradeneeded=e=>e.target.result.createObjectStore(STORE_NAME,{keyPath:"id",autoIncrement:true});
-openReq.onsuccess=e=>{db=e.target.result; renderHistory();};
+const req=indexedDB.open(DB_NAME,1);
+req.onupgradeneeded=e=>e.target.result.createObjectStore(STORE_NAME,{keyPath:"id",autoIncrement:true});
+req.onsuccess=e=>{db=e.target.result; renderHistory();};
 
-document.querySelectorAll(".food-btn").forEach((btn,i)=>{
-  btn.addEventListener("click",()=>{
-    selectedFood=foods[i];
-    const nums=generateNumbers(selectedFood);
-    showNumbers(nums);
-  });
+// ✅ 음식 버튼 그리기
+const foodContainer=document.getElementById("foodContainer");
+foods.forEach(f=>{
+  const btn=document.createElement("button");
+  btn.className="food-btn";
+  btn.textContent=f.emoji;
+  btn.onclick=()=>handleFoodClick(f.name);
+  foodContainer.appendChild(btn);
 });
 
-// ✅ 음수 완전 차단형 랜덤 생성
+async function handleFoodClick(foodName){
+  selectedFood=foodName;
+  document.getElementById("actions").style.display="none";
+  document.getElementById("sns").style.display="none";
+  document.getElementById("numbers").innerHTML="<div class='placeholder'>⏳ 번호 생성 중...</div>";
+
+  // 렌더링 여유 (모바일 멈춤 방지)
+  await new Promise(res=>setTimeout(res,80));
+
+  const nums=generateNumbers(foodName);
+  showNumbers(nums);
+}
+
 function generateNumbers(food){
   const today=new Date().toISOString().slice(0,10);
   const seed=food+today;
-  let nums=[];
+  const nums=[];
   for(let i=0;i<6;i++){
-    const code=(seed.charCodeAt(i%seed.length)+i*17)%10000;
+    const code=(seed.charCodeAt(i%seed.length)+i*37)%10000;
     const n=(code%45)+1;
     if(!nums.includes(n)) nums.push(n);
     else i--;
@@ -218,7 +210,7 @@ function showNumbers(nums){
 }
 
 document.getElementById("save").addEventListener("click",()=>{
-  if(!selectedFood)return;
+  if(!selectedFood || !db)return;
   const nums=[...document.querySelectorAll(".ball")].map(b=>b.textContent).join(", ");
   const today=new Date().toISOString().slice(0,10);
   const record={date:today,food:selectedFood,numbers:nums};
@@ -243,6 +235,7 @@ function renderHistory(){
   };
 }
 
+// ✅ 카카오톡 공유
 document.getElementById("shareKakao").addEventListener("click",()=>{
   Kakao.Link.sendDefault({
     objectType:"feed",
@@ -250,11 +243,12 @@ document.getElementById("shareKakao").addEventListener("click",()=>{
       title:"오늘의 음식으로 뽑은 로또 1등 번호 추천 🍀",
       description:"나만의 행운의 번호를 음식으로 뽑아보세요!",
       imageUrl:"https://yakmin2025.github.io/thumbnail.png",
-      link:{ mobileWebUrl:"https://yakmin2025.github.io/", webUrl:"https://yakmin2025.github.io/" }
+      link:{mobileWebUrl:"https://yakmin2025.github.io/",webUrl:"https://yakmin2025.github.io/"}
     }
   });
 });
 
+// ✅ 링크 복사
 document.getElementById("copyLink").addEventListener("click",()=>{
   navigator.clipboard.writeText("https://yakmin2025.github.io/");
   alert("🔗 링크가 복사되었습니다!");
