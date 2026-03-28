@@ -140,16 +140,19 @@ const foods = ["초밥","피자","치킨","햄버거","김밥","라면","국밥"
 const colors = ["#f44336","#ff9800","#ffeb3b","#4caf50","#2196f3","#9c27b0"];
 let selectedFood = null;
 
+// 🔥 앱 광고 연결 + 클릭 안정화
 document.querySelectorAll(".food-btn").forEach((btn, index) => {
-  btn.addEventListener("click", () => {
+  btn.onclick = function() {
     selectedFood = foods[index];
 
-    if (typeof Android !== "undefined") {
-      Android.foodClicked();
-    }
+    try {
+      if (typeof Android !== "undefined") {
+        Android.foodClicked();
+      }
+    } catch(e) {}
 
     generateNumbers(selectedFood);
-  });
+  };
 });
 
 function generateNumbers(food) {
@@ -180,42 +183,47 @@ function displayNumbers(nums) {
     const ball = document.createElement("div");
     ball.className = "ball";
     ball.style.background = colors[i % colors.length];
-    ball.textContent = n;
+    ball.innerText = n;
     container.appendChild(ball);
   });
 
   document.getElementById("actions").style.display = "block";
 }
 
+// 🔥 저장 (완전 안정 버전)
 function saveLotto() {
-  if (!selectedFood) {
-    alert("음식을 먼저 선택하세요!");
-    return;
+  try {
+    if (!selectedFood) {
+      alert("음식을 먼저 선택하세요!");
+      return;
+    }
+
+    const balls = document.getElementsByClassName("ball");
+
+    if (balls.length === 0) {
+      alert("번호가 없습니다!");
+      return;
+    }
+
+    let nums = [];
+    for (let i = 0; i < balls.length; i++) {
+      nums.push(balls[i].innerText);
+    }
+
+    const today = new Date().toISOString().slice(0,10);
+    const record = today + " / " + selectedFood + " / " + nums.join(",");
+
+    let history = JSON.parse(localStorage.getItem("lottoHistory") || "[]");
+    history.push(record);
+
+    localStorage.setItem("lottoHistory", JSON.stringify(history));
+
+    renderHistory();
+
+    alert("저장 완료!");
+  } catch(e) {
+    alert("에러 발생: " + e.message);
   }
-
-  const balls = document.getElementsByClassName("ball");
-
-  if (balls.length === 0) {
-    alert("번호가 없습니다!");
-    return;
-  }
-
-  const nums = Array.from(balls)
-    .map(b => b.innerText.trim())
-    .join(",");
-
-  const today = new Date().toISOString().slice(0,10);
-
-  const record = `${today} / ${selectedFood} / ${nums}`;
-
-  const history = JSON.parse(localStorage.getItem("lottoHistory") || "[]");
-  history.push(record);
-
-  localStorage.setItem("lottoHistory", JSON.stringify(history));
-
-  renderHistory();
-
-  alert("저장 완료!");
 }
 
 function renderHistory() {
@@ -224,14 +232,17 @@ function renderHistory() {
 
   const history = JSON.parse(localStorage.getItem("lottoHistory") || "[]");
 
-  history.slice().reverse().forEach(item => {
+  for (let i = history.length - 1; i >= 0; i--) {
     const li = document.createElement("li");
-    li.textContent = item;
+    li.innerText = history[i];
     list.appendChild(li);
-  });
+  }
 }
 
-renderHistory();
+// 🔥 앱에서 localStorage 문제 대비
+try {
+  renderHistory();
+} catch(e) {}
 </script>
 
 </body>
