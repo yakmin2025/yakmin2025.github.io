@@ -127,7 +127,7 @@
 </div>
 
 <div class="actions" id="actions" style="display:none;">
-  <button class="action-btn" id="save">오늘의 번호 저장하기</button>
+  <button class="action-btn" onclick="saveLotto()">오늘의 번호 저장하기</button>
 </div>
 
 <div class="history">
@@ -187,8 +187,7 @@ function displayNumbers(nums) {
   document.getElementById("actions").style.display = "block";
 }
 
-// ⭐ 저장 기능 (수정 완료 버전)
-document.getElementById("save").addEventListener("click", () => {
+function saveLotto() {
   if (!selectedFood) {
     alert("음식을 먼저 선택하세요!");
     return;
@@ -215,7 +214,9 @@ document.getElementById("save").addEventListener("click", () => {
   localStorage.setItem("lottoHistory", JSON.stringify(history));
 
   renderHistory();
-});
+
+  alert("저장 완료!");
+}
 
 function renderHistory() {
   const list = document.getElementById("historyList");
